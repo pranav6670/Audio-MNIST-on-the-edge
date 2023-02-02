@@ -9,8 +9,9 @@ from python_speech_features import mfcc, logfbank
 import warnings
 
 plt.style.use('ggplot')
-plt.grid(True)
 warnings.filterwarnings("ignore")
+
+ROLLING_FACTOR = 10
 
 
 def plot_signals(signals):
@@ -63,7 +64,7 @@ def plot_fbank(fbank):
 
 def plot_mfccs(mfccs):
     fig, axes = plt.subplots(nrows=2, ncols=4, sharex=False,
-                             sharey=True, figsize=(20,4))
+                             sharey=True, figsize=(20, 4))
     fig.suptitle('Mel Frequency Cepstrum Coefficients', size=16)
     fig.canvas.set_window_title('Mel Frequency Cepstrum Coefficients')
 
@@ -81,7 +82,7 @@ def plot_mfccs(mfccs):
 def envelope(y, rate, threshold):
     mask = []
     y = pd.Series(y).apply(np.abs)
-    y_mean = y.rolling(window=int(rate/10), min_periods=1, center=True).mean()
+    y_mean = y.rolling(window=int(rate/ROLLING_FACTOR), min_periods=1, center=True).mean()
     for mean in y_mean:
         if mean > threshold:
             mask.append(True)
@@ -94,7 +95,7 @@ def calc_fft(y, rate):
     n = len(y)
     freq = np.fft.rfftfreq(n, d=1/rate)
     Y = abs(np.fft.rfft(y)/n)
-    return (Y, freq)
+    return Y, freq
 
 
 df = pd.read_csv('train.csv')
@@ -113,7 +114,7 @@ fig.canvas.set_window_title('Class Distributions')
 
 ax.set_title('Class Distributions', y=1.08)
 ax.pie(class_dist, labels=class_dist.index, autopct='%1.1f%%',
-       shadow=False,startangle=90)
+       shadow=False, startangle=90)
 
 ax.axis('equal')
 plt.show()
@@ -131,14 +132,11 @@ for c in classes:
     signal = signal[mask]
     signals[c] = signal
     fft[c] = calc_fft(signal, rate)
-    # bank = logfbank(signal[:rate], rate, nfilt=26, nfft=1103).T
-    # fbank[c] =bank
-    # mel = mfcc(signal[:rate], rate, numcep=13, nfilt=26, nfft=1103).T
-    # mfccs[c] = mel
     bank = logfbank(signal[:rate], rate, nfilt=26, nfft=1103).T
-    fbank[c] =bank
+    fbank[c] = bank
     mel = mfcc(signal[:rate], rate, numcep=13, nfilt=26, nfft=1103).T
     mfccs[c] = mel
+
 
 plot_signals(signals)
 plt.show()
